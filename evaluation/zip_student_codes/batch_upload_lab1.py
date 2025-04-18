@@ -15,7 +15,7 @@ DELAY_BETWEEN_UPLOADS = 1
 TEST_MODE = False
 MAX_MARKS = 10
 TEST_LIMIT = 5
-OUTPUT_PREFIX = "evaluation_results_lab2"
+OUTPUT_PREFIX = "evaluation_result_lab1"
 
 def extract_student_id(zip_filename):
     return os.path.splitext(zip_filename)[0]
