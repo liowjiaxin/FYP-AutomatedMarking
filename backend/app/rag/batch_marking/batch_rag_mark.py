@@ -224,29 +224,18 @@ def save_results_to_csv(results: Dict[str, Any], output_file: str):
                 result['feedback']
             ])
 
-def process_all_submissions(
-    lab_dir: str,
-    marking_scheme: str,
-    language: str,
-    total_marks: float,
-    code_run_output: str = "",
-    test_mode: bool = False,
-    test_limit: int = 3
-) -> Dict[str, Any]:
-    """
-    Process all submissions in a lab directory.
+def process_all_submissions(lab_dir: str, marking_scheme_path: str, total_marks: float, test_mode: bool = True, test_limit: int = 5) -> List[Dict]:
+    """Process all submissions in a lab directory.
     
     Args:
-        lab_dir: Path to the lab directory containing submissions
-        marking_scheme: Path to the marking scheme file
-        language: Programming language of the submissions
-        total_marks: Total marks for the assignment
-        code_run_output: Optional test case output
-        test_mode: Whether to run in test mode
-        test_limit: Number of submissions to process in test mode
+        lab_dir (str): Path to the lab directory containing student submissions
+        marking_scheme_path (str): Path to the marking scheme file
+        total_marks (float): Total marks for the assignment
+        test_mode (bool, optional): Whether to run in test mode. Defaults to True.
+        test_limit (int, optional): Number of submissions to process in test mode. Defaults to 5.
         
     Returns:
-        Dict containing results for all submissions
+        List[Dict]: List of grading results for each submission
     """
     submissions = list_submissions(lab_dir)
     if not submissions:
@@ -274,9 +263,7 @@ def process_all_submissions(
             
             result = grader.grade_submission(
                 submission_zip=submission_path,
-                marking_scheme_path=marking_scheme,
-                language=language,
-                code_run_output=code_run_output,
+                marking_scheme_path=marking_scheme_path,
                 total_marks=total_marks
             )
             
@@ -311,8 +298,10 @@ def main():
     os.makedirs(schemes_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
     
-    print("RAG Grading System")
-    print("=================")
+    print("\n" + "="*50)
+    print("RAG Grading System - TEST MODE ENABLED")
+    print("="*50)
+    print("\nTest mode is active: Only 5 submissions will be processed")
     print(f"\nBase directory: {base_dir}")
     print(f"Marking schemes directory: {schemes_dir}")
     print(f"Results directory: {results_dir}")
@@ -328,11 +317,9 @@ def main():
             except ValueError:
                 print("Please enter a valid number.")
         
-        # Ask if user wants to run in test mode
-        test_mode = input("\nDo you want to run in test mode? (y/n): ").lower() == 'y'
+        # Test mode parameters are fixed
+        test_mode = True
         test_limit = 5
-        if test_mode:
-            print(f"\nSYSTEM IS IN TEST MODE: Will process only {test_limit} submissions")
         
         # List available lab folders
         lab_folders = list_lab_folders(base_dir)
@@ -375,93 +362,42 @@ def main():
         # Optional: Get test case output
         code_run_output = input("Enter test case output (press Enter to skip): ")
         
-        # Ask if user wants to process all submissions
-        process_all = input("\nDo you want to process all submissions in this lab? (y/n): ").lower() == 'y'
+        print(f"\nProcessing submissions in {lab_folders[lab_choice]} (Test Mode - max 5 submissions)...")
+        results = process_all_submissions(
+            lab_dir=lab_dir,
+            marking_scheme_path=marking_scheme,
+            total_marks=total_marks,
+            test_mode=test_mode,
+            test_limit=test_limit
+        )
         
-        if process_all:
-            print(f"\nProcessing all submissions in {lab_folders[lab_choice]}...")
-            results = process_all_submissions(
-                lab_dir=lab_dir,
-                marking_scheme=marking_scheme,
-                language=language,
-                total_marks=total_marks,
-                code_run_output=code_run_output,
-                test_mode=test_mode,
-                test_limit=test_limit
-            )
+        print("\nBatch Processing Results:")
+        print("=======================")
+        print(f"Total submissions processed: {results['total_submissions']} (limited by test mode)")
+        print(f"Successful: {len(results['successful'])}")
+        print(f"Failed: {len(results['failed'])}")
+        
+        if results['failed']:
+            print("\nFailed submissions:")
+            for fail in results['failed']:
+                print(f"- {fail['submission']}: {fail['error']}")
+        
+        # Save results to files in results directory
+        output_prefix = f"grading_results_{lab_folders[lab_choice]}_test"
+        
+        # Save JSON results
+        json_file = os.path.join(results_dir, f"{output_prefix}.json")
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        
+        # Save CSV results
+        csv_file = os.path.join(results_dir, f"{output_prefix}.csv")
+        save_results_to_csv(results, csv_file)
+        
+        print(f"\nDetailed results saved to:")
+        print(f"- JSON: {json_file}")
+        print(f"- CSV: {csv_file}")
             
-            print("\nBatch Processing Results:")
-            print("=======================")
-            print(f"Total submissions: {results['total_submissions']}")
-            print(f"Successful: {len(results['successful'])}")
-            print(f"Failed: {len(results['failed'])}")
-            
-            if results['failed']:
-                print("\nFailed submissions:")
-                for fail in results['failed']:
-                    print(f"- {fail['submission']}: {fail['error']}")
-            
-            # Save results to files in results directory
-            output_prefix = f"grading_results_{lab_folders[lab_choice]}"
-            if test_mode:
-                output_prefix += "_test"
-            
-            # Save JSON results
-            json_file = os.path.join(results_dir, f"{output_prefix}.json")
-            with open(json_file, 'w', encoding='utf-8') as f:
-                json.dump(results, f, indent=2, ensure_ascii=False)
-            
-            # Save CSV results
-            csv_file = os.path.join(results_dir, f"{output_prefix}.csv")
-            save_results_to_csv(results, csv_file)
-            
-            print(f"\nDetailed results saved to:")
-            print(f"- JSON: {json_file}")
-            print(f"- CSV: {csv_file}")
-            
-        else:
-            # Process single submission
-            submissions = list_submissions(lab_dir)
-            if not submissions:
-                print(f"\nNo submission files found in {lab_folders[lab_choice]}")
-                return
-            
-            print(f"\nAvailable submissions in {lab_folders[lab_choice]}:")
-            for i, sub in enumerate(submissions, 1):
-                print(f"{i}. {sub}")
-            
-            # Select submission
-            sub_choice = int(input("\nEnter the number of the submission to grade: ")) - 1
-            if sub_choice < 0 or sub_choice >= len(submissions):
-                raise ValueError("Invalid submission choice")
-            
-            submission_zip = os.path.join(lab_dir, submissions[sub_choice])
-            
-            # Initialize grader
-            grader = RAGGrader()
-            
-            # Grade submission
-            result = grader.grade_submission(
-                submission_zip=submission_zip,
-                marking_scheme_path=marking_scheme,
-                language=language,
-                code_run_output=code_run_output,
-                total_marks=total_marks
-            )
-            
-            # Print results
-            print("\nGrading Results:")
-            print("===============")
-            if "error" in result:
-                print(f"Error: {result['error']}")
-            else:
-                print(f"Marks: {result['marks']}/{total_marks}")
-                print("\nFeedback:")
-                print(result['feedback'])
-                print("\nGraded Files:")
-                for file in result['code_files']:
-                    print(f"- {file}")
-                
     except KeyboardInterrupt:
         print("\nGrading cancelled by user")
         sys.exit(1)
