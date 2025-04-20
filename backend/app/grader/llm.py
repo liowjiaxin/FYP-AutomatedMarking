@@ -4,7 +4,6 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
-import json
 
 GRADER_MODEL_NAME = os.environ.get("GRADER_MODEL_NAME", "gemini-1.5-flash")
 
@@ -52,20 +51,17 @@ You are an expert programming assignment grader with 20 years of experience. Con
 5. **Improvement Roadmap**: Create prioritized suggestions
 
 **Scoring Guidelines**
-- 9-10: Flawless implementation exceeding requirements
-- 8-8.9: Minor issues with excellent fundamentals
-- 7-7.9: Functional but needs quality improvements
-- 6-6.9: Partial solution with significant gaps
-- <6: Non-working or severely deficient
+- 90-100: Flawless implementation exceeding requirements
+- 80-89: Minor issues with excellent fundamentals
+- 70-79: Functional but needs quality improvements
+- 60-69: Partial solution with significant gaps
+- <60: Non-working or severely deficient
 
 **Output Schema**
-{
-  "marks": <0-10>,
-  "feedback": str
-}
-
-Please return raw JSON only. Do not wrap it in a code block or use Markdown formatting.
-
+{{
+  "marks": <0-100>,
+  "feedback": str,
+}} 
 
 **Submission Code**
 {code}
@@ -78,8 +74,8 @@ Please return raw JSON only. Do not wrap it in a code block or use Markdown form
 5. Maintain strict but fair academic standards
 
 **Special Instructions**
-- Penalize security risks severely (-1-2 points)
-- Reward innovative but appropriate solutions (+0.5-1 bonus)
+- Penalize security risks severely (-10-20 points)
+- Reward innovative but appropriate solutions (+5-10 bonus)
 - Flag academic integrity concerns explicitly
 - Consider lines/file ratios in quality assessment
 """
@@ -117,43 +113,11 @@ class LLM:
             self.chain = self.prompt_template | self.llm
 
     def invoke(self, input: dict):
-    try:
-        result = self.chain.invoke(input)
-
-        # Case 1: If result is a dictionary (parsed by LangChain's JsonOutputParser)
-        if isinstance(result, dict):
-            return result
-
-        # Case 2: If result is a string (fallback when parser not used or fails)
-        if isinstance(result, str):
-            # Clean code block wrappers
-            cleaned = (
-                result.replace("```json", "")
-                      .replace("```", "")
-                      .replace("json", "")
-                      .strip()
-            )
-            try:
-                return json.loads(cleaned)
-            except json.JSONDecodeError as json_err:
-                print("JSON decode failed even after cleaning:", json_err)
-                return {
-                    "marks": 0,
-                    "feedback": f"Error during grading: Invalid JSON after code block cleanup. Raw:\n{result}"
-                }
-
-        # Fallback for unexpected types
-        return {
-            "marks": 0,
-            "feedback": f"Error during grading: Unexpected LLM output type: {type(result)}"
-        }
-
-    except Exception as e:
-        print(f"Exception while invoking LLM: {str(e)}")
-        return {
-            "marks": 0,
-            "feedback": f"Error during grading: {str(e)}"
-        }
+        try:
+            return self.chain.invoke(input)
+        except Exception as e:
+            print(f"Error invoking LLM: {str(e)}")
+            return {"marks": 0, "feedback": f"Error during grading: {str(e)}"}
 
 
 class GraderLLM(LLM):

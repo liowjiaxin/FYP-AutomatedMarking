@@ -21,6 +21,93 @@ document.addEventListener('DOMContentLoaded', () => {
       wrappingStrategy: 'advanced'
     });
   });
+
+  // Initialize Dropzone for file uploads
+  Dropzone.autoDiscover = false;
+  
+  const markingSchemeDropzone = new Dropzone("#marking-scheme-dropzone", {
+    url: "/api/upload",
+    maxFiles: 1,
+    acceptedFiles: ".txt,.pdf,.doc,.docx",
+    dictDefaultMessage: "Drop marking scheme here or click to upload"
+  });
+
+  const studentAnswerDropzone = new Dropzone("#student-answer-dropzone", {
+    url: "/api/upload",
+    maxFiles: 1,
+    acceptedFiles: ".txt,.py,.java,.c,.cpp",
+    dictDefaultMessage: "Drop student's answer here or click to upload"
+  });
+
+  const stdinDropzone = new Dropzone("#stdin-file-dropzone", {
+    url: "/api/upload",
+    maxFiles: 1,
+    acceptedFiles: ".txt",
+    dictDefaultMessage: "Drop stdin file here or click to upload"
+  });
+
+  // Handle file upload success
+  markingSchemeDropzone.on("success", function(file, response) {
+    document.getElementById('marking-scheme-filename').value = response.filename;
+  });
+
+  studentAnswerDropzone.on("success", function(file, response) {
+    document.getElementById('student-answer-zip-filename').value = response.filename;
+  });
+
+  stdinDropzone.on("success", function(file, response) {
+    document.getElementById('stdin-filename').value = response.filename;
+  });
+
+  // Handle submit button click
+  document.getElementById('submit-assignment').addEventListener('click', async function() {
+    const studentId = document.getElementById('student-id').value;
+    const markingSchemeFile = document.getElementById('marking-scheme-filename').value;
+    const studentAnswerFile = document.getElementById('student-answer-zip-filename').value;
+    const stdinFile = document.getElementById('stdin-filename').value;
+
+    if (!studentId || !markingSchemeFile || !studentAnswerFile) {
+      alert('Please fill in all required fields and upload necessary files');
+      return;
+    }
+
+    // Create form data
+    const formData = new FormData();
+    formData.append('student_id', studentId);
+    formData.append('marking_scheme', markingSchemeFile);
+    formData.append('student_answer', studentAnswerFile);
+    if (stdinFile) {
+      formData.append('stdin_file', stdinFile);
+    }
+
+    try {
+      // Show loading state
+      document.getElementById('marks').textContent = 'Processing...';
+      document.getElementById('grade').textContent = 'Processing...';
+      document.getElementById('feedback').textContent = 'Processing...';
+
+      // Send request to process submission
+      const response = await fetch('/api/process-submission', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process submission');
+      }
+
+      const result = await response.json();
+
+      // Update results
+      document.getElementById('marks').textContent = result.marks;
+      document.getElementById('grade').textContent = result.grade;
+      document.getElementById('feedback').textContent = result.feedback;
+
+    } catch (error) {
+      console.error('Error:', error);
+      alert('An error occurred while processing the submission');
+    }
+  });
 });
 
 document.addEventListener('DOMContentLoaded', () => {
