@@ -1,9 +1,9 @@
-from rag_llm import GraderLLM
+from app.rag.rag_llm import GraderLLM
 from dataclasses import dataclass
 import os
 import json
-from document_loader import DocumentLoader
-from retriever import Retriever
+from app.rag.document_loader import DocumentLoader
+from app.rag.retriever import Retriever
 from typing import List, Dict, Any
 import traceback
 
