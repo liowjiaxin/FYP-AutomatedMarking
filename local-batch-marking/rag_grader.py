@@ -1,22 +1,22 @@
 import os
+import sys
 import zipfile
 import tempfile
 import shutil
 from typing import List, Dict, Any
 import json
-import sys
 from PyPDF2 import PdfReader
-import csv
-from tqdm import tqdm
 
-# Add the app directory to Python path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-app_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
-sys.path.append(app_dir)
+# Add backend path to Python path
+backend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                           "backend")
+sys.path.append(backend_path)
 
+# Import RAG components from backend
 from app.rag.rag_grading import Grader
 from app.rag.document_loader import DocumentLoader
 from app.rag.retriever import Retriever
+
 
 class RAGGrader:
     def __init__(self, vector_store_dir: str = "vector_store"):
@@ -72,9 +72,8 @@ class RAGGrader:
         """Prepare RAG context by retrieving similar submissions."""
         try:
             # Create a query combining code and rubrics
-            MAX_QUERY_CHARS = 15000
-            query = f"Code: {code[:MAX_QUERY_CHARS // 2]}\nRubrics: {rubrics[:MAX_QUERY_CHARS // 2]}"
-
+            query = f"Code: {code}\nRubrics: {rubrics}"
+            
             # Retrieve similar submissions
             print("Retrieving similar submissions for RAG context...")
             similar_docs = self.retriever.retrieve_relevant_documents(query, k=3)
@@ -210,101 +209,18 @@ def list_marking_schemes(schemes_dir: str) -> List[str]:
     scheme_files = [f for f in os.listdir(schemes_dir) if f.lower().endswith(('.txt', '.md', '.pdf'))]
     return scheme_files
 
-def save_results_to_csv(results: Dict[str, Any], output_file: str):
-    """Save grading results to CSV file."""
-    with open(output_file, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        writer.writerow(['student_id', 'marks', 'feedback'])
-        
-        for result in results['successful']:
-            student_id = os.path.splitext(result['submission'])[0]
-            writer.writerow([
-                student_id,
-                result['marks'],
-                result['feedback']
-            ])
-
-def process_all_submissions(lab_dir: str, marking_scheme_path: str, total_marks: float, test_mode: bool = True, test_limit: int = 5) -> List[Dict]:
-    """Process all submissions in a lab directory.
-    
-    Args:
-        lab_dir (str): Path to the lab directory containing student submissions
-        marking_scheme_path (str): Path to the marking scheme file
-        total_marks (float): Total marks for the assignment
-        test_mode (bool, optional): Whether to run in test mode. Defaults to True.
-        test_limit (int, optional): Number of submissions to process in test mode. Defaults to 5.
-        
-    Returns:
-        List[Dict]: List of grading results for each submission
-    """
-    submissions = list_submissions(lab_dir)
-    if not submissions:
-        return {"error": f"No submissions found in {lab_dir}"}
-    
-    if test_mode:
-        print(f"\nTEST MODE: Processing only {test_limit} submissions")
-        submissions = submissions[:test_limit]
-    
-    results = {
-        "successful": [],
-        "failed": [],
-        "total_submissions": len(submissions),
-        "test_mode": test_mode,
-        "test_limit": test_limit if test_mode else None
-    }
-    
-    grader = RAGGrader()
-    
-    # Add progress bar
-    print(f"\nProcessing {len(submissions)} submissions...")
-    for submission in tqdm(submissions, desc="Grading submissions"):
-        try:
-            submission_path = os.path.join(lab_dir, submission)
-            
-            result = grader.grade_submission(
-                submission_zip=submission_path,
-                marking_scheme_path=marking_scheme_path,
-                total_marks=total_marks
-            )
-            
-            if "error" in result:
-                results["failed"].append({
-                    "submission": submission,
-                    "error": result["error"]
-                })
-            else:
-                results["successful"].append({
-                    "submission": submission,
-                    "marks": result["marks"],
-                    "feedback": result["feedback"],
-                    "code_files": result["code_files"]
-                })
-                
-        except Exception as e:
-            results["failed"].append({
-                "submission": submission,
-                "error": str(e)
-            })
-    
-    return results
-
 def main():
     # Setup directories
     base_dir = os.path.join(os.path.dirname(__file__), "grading_data")
     schemes_dir = os.path.join(os.path.dirname(__file__), "marking_schemes")
-    results_dir = os.path.join(os.path.dirname(__file__), "results")
     
-    # Create directories if they don't exist
+    # Create marking schemes directory if it doesn't exist
     os.makedirs(schemes_dir, exist_ok=True)
-    os.makedirs(results_dir, exist_ok=True)
     
-    print("\n" + "="*50)
-    print("RAG Grading System - TEST MODE ENABLED")
-    print("="*50)
-    print("\nTest mode is active: Only 5 submissions will be processed")
+    print("RAG Grading System")
+    print("=================")
     print(f"\nBase directory: {base_dir}")
     print(f"Marking schemes directory: {schemes_dir}")
-    print(f"Results directory: {results_dir}")
     
     try:
         # Get total marks from user
@@ -316,10 +232,6 @@ def main():
                 print("Please enter a positive number.")
             except ValueError:
                 print("Please enter a valid number.")
-        
-        # Test mode parameters are fixed
-        test_mode = True
-        test_limit = 5
         
         # List available lab folders
         lab_folders = list_lab_folders(base_dir)
@@ -337,6 +249,23 @@ def main():
             raise ValueError("Invalid lab choice")
         
         lab_dir = os.path.join(base_dir, lab_folders[lab_choice])
+        
+        # List available submissions in selected lab
+        submissions = list_submissions(lab_dir)
+        if not submissions:
+            print(f"\nNo submission files found in {lab_folders[lab_choice]}")
+            return
+        
+        print(f"\nAvailable submissions in {lab_folders[lab_choice]}:")
+        for i, sub in enumerate(submissions, 1):
+            print(f"{i}. {sub}")
+        
+        # Select submission
+        sub_choice = int(input("\nEnter the number of the submission to grade: ")) - 1
+        if sub_choice < 0 or sub_choice >= len(submissions):
+            raise ValueError("Invalid submission choice")
+        
+        submission_zip = os.path.join(lab_dir, submissions[sub_choice])
         
         # List available marking schemes
         schemes = list_marking_schemes(schemes_dir)
@@ -362,42 +291,31 @@ def main():
         # Optional: Get test case output
         code_run_output = input("Enter test case output (press Enter to skip): ")
         
-        print(f"\nProcessing submissions in {lab_folders[lab_choice]} (Test Mode - max 5 submissions)...")
-        results = process_all_submissions(
-            lab_dir=lab_dir,
+        # Initialize grader
+        grader = RAGGrader()
+        
+        # Grade submission
+        result = grader.grade_submission(
+            submission_zip=submission_zip,
             marking_scheme_path=marking_scheme,
-            total_marks=total_marks,
-            test_mode=test_mode,
-            test_limit=test_limit
+            language=language,
+            code_run_output=code_run_output,
+            total_marks=total_marks
         )
         
-        print("\nBatch Processing Results:")
-        print("=======================")
-        print(f"Total submissions processed: {results['total_submissions']} (limited by test mode)")
-        print(f"Successful: {len(results['successful'])}")
-        print(f"Failed: {len(results['failed'])}")
-        
-        if results['failed']:
-            print("\nFailed submissions:")
-            for fail in results['failed']:
-                print(f"- {fail['submission']}: {fail['error']}")
-        
-        # Save results to files in results directory
-        output_prefix = f"grading_results_{lab_folders[lab_choice]}_test"
-        
-        # Save JSON results
-        json_file = os.path.join(results_dir, f"{output_prefix}.json")
-        with open(json_file, 'w', encoding='utf-8') as f:
-            json.dump(results, f, indent=2, ensure_ascii=False)
-        
-        # Save CSV results
-        csv_file = os.path.join(results_dir, f"{output_prefix}.csv")
-        save_results_to_csv(results, csv_file)
-        
-        print(f"\nDetailed results saved to:")
-        print(f"- JSON: {json_file}")
-        print(f"- CSV: {csv_file}")
-            
+        # Print results
+        print("\nGrading Results:")
+        print("===============")
+        if "error" in result:
+            print(f"Error: {result['error']}")
+        else:
+            print(f"Marks: {result['marks']}/{total_marks}")
+            print("\nFeedback:")
+            print(result['feedback'])
+            print("\nGraded Files:")
+            for file in result['code_files']:
+                print(f"- {file}")
+                
     except KeyboardInterrupt:
         print("\nGrading cancelled by user")
         sys.exit(1)
