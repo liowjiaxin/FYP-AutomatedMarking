@@ -1,0 +1,19 @@
+Submission,Marking Scheme,Marks,Feedback
+Task1_student.zip,Task1_marking_scheme.pdf,7.0,"The implementation solves the task but lacks in various aspects. 
+
+1. Code Comprehension: Shows understanding of prime number concept. No evidence of conceptual misunderstandings. 
+2. Functional Correctness: Solves the problem but lacks checks for numbers < 2 and does not handle edge cases properly. More test cases needed for robustness. 
+3. Code Quality: Needs improvement in comments and modularity. Readability is average. 
+4. Technical Implementation: Efficiency can be enhanced by optimizing the loop for prime checking. No issues with language features or resource management. 
+5. Testing & Verification: Lack of test cases and input validation. Debugging evidence is missing. 
+
+Improvement Roadmap: 
+- Add checks for numbers < 2. 
+- Implement handling for edge cases like 2. 
+- Increase test case coverage for robustness. 
+- Enhance comments for better code understanding. 
+- Refactor code for better modularity with named functions. 
+- Optimize algorithm for prime checking. 
+- Include more test cases and ensure input validation. 
+
+Overall, a functional solution but with significant room for improvement."
