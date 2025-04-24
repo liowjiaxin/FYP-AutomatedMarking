@@ -26,8 +26,7 @@ VECTOR_STORE_PATH = "c_dataset_faiss"  # Directory for FAISS index
 # List of supported models with their token limits
 SUPPORTED_MODELS = {
     "openai/gpt-3.5-turbo": 1000,  # More cost-effective
-    "openai/gpt-4-turbo-preview": 2000,
-    "anthropic/claude-3-sonnet-20240229": 2000
+    "openai/gpt-4-turbo-preview": 2000
 }
 
 system_prompt = """

@@ -1,0 +1,1 @@
+Good use of a loop and variable initialization. However, there's a small bug: the Fibonacci sequence grows incorrectly because b is updated using the already modified value of a. Consider updating a, b = b, a + b instead. Also, no comments are present, and edge cases like n = 0 should return an empty list.
