@@ -1,0 +1,9 @@
+The function is_leap_year() correctly implements the leap year logic, including the rule that years divisible by 100 are not leap years unless also divisible by 400. The logic is well-structured and accurate.
+
+The use of a dedicated function promotes modularity and improves code readability. The function is accompanied by a clear and descriptive docstring that adheres to standard Python documentation practices, explaining the input and expected output clearly.
+
+The program also includes user interaction via input, which enables dynamic testing and simulates a real-world usage scenario.
+
+However, the function lacks inline comments to explain key logic decisions, such as the significance of the 100 and 400-year rules. Adding brief comments would improve readability, particularly for beginners or reviewers unfamiliar with the leap year rules.
+
+Overall, this is a strong implementation with only minor improvements needed in code documentation.

@@ -15,11 +15,11 @@ def test_single_submission():
     
     # Paths to files - now in the test directory
     base_dir = os.path.dirname(__file__)
-    student_file = os.path.join(base_dir, "student_submission", "Task2_student.py")
-    marking_scheme = os.path.join(base_dir, "marking_schemes", "Task2_marking_scheme.pdf")
+    student_file = os.path.join(base_dir, "student_submission", "Task3_student.py")
+    marking_scheme = os.path.join(base_dir, "marking_schemes", "Task3_marking_scheme.pdf")
     
     # Create zip file for submission
-    submission_zip = os.path.join(base_dir, "student_submission", "Task2_student.zip")
+    submission_zip = os.path.join(base_dir, "student_submission", "Task3_student.zip")
     with zipfile.ZipFile(submission_zip, 'w') as zipf:
         zipf.write(student_file, os.path.basename(student_file))
     
