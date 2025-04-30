@@ -1,3 +1,11 @@
+import sys
+import os
+
+# Add the backend directory to Python path
+backend_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(backend_path)
+
+from app.rag.rag_grading import Grader
 from rag_grading import Grader
 import os
 import zipfile

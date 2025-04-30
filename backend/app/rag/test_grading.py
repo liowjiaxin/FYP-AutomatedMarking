@@ -1,48 +1,60 @@
-from rag_grading import Grader
+import sys
 import os
+
+# Add the backend directory to Python path
+backend_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(backend_path)
+
+from app.rag.rag_grading import Grader
 
 def test_grading():
     # Initialize the grader
     grader = Grader()
     
-    # Example submission details
-    extract_path = "path/to/submission"  # Replace with actual path
-    code_files = ["main.py"]  # Replace with actual code files
-    language = "python"
-    rubrics = """
-    Grading Rubric:
-    1. Code Quality (40%)
-       - Proper indentation and formatting
-       - Meaningful variable names
-       - Appropriate comments
-    2. Functionality (60%)
-       - Correct implementation of requirements
-       - Error handling
-       - Input validation
-    """
+    # Example code and rubrics
+    code = """
+def calculate_factorial(n):
+    if n < 0:
+        return "Error: Factorial is not defined for negative numbers"
+    elif n == 0 or n == 1:
+        return 1
+    else:
+        result = 1
+        for i in range(2, n + 1):
+            result *= i
+        return result
+"""
     
-    # Example code run output (if available)
-    code_run_output = """
-    Test Case 1: Passed
-    Test Case 2: Passed
-    Test Case 3: Failed - Incorrect output
-    """
+    rubrics = """
+Grading Rubric:
+1. Functionality (40 points)
+   - Correct calculation of factorial
+   - Proper handling of edge cases
+2. Code Quality (30 points)
+   - Clear variable names
+   - Proper comments
+3. Error Handling (20 points)
+   - Proper input validation
+   - Clear error messages
+4. Testing (10 points)
+   - Test cases for different scenarios
+"""
     
     try:
         # Grade the submission
         marks, feedback = grader.grade(
-            extract_path=extract_path,
-            code_files=code_files,
-            language=language,
+            extract_path=".",
+            code_files=["test.py"],
+            language="python",
             rubrics=rubrics,
-            code_run_output=code_run_output
+            code_run_output="120\n1\nError: Factorial is not defined for negative numbers"
         )
         
         # Print results
         print("\nGrading Results:")
-        print(f"Marks: {marks}/100")
-        print("\nFeedback:")
-        print(feedback)
+        print("===============")
+        print(f"Marks: {marks}")
+        print(f"Feedback: {feedback}")
         
     except Exception as e:
         print(f"Error during grading: {str(e)}")
